@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Imaginova</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Playfair+Display:wght@400;500;600;700;900&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://www.aura.build/FxFilter.js"></script>
+    <style>
+      body { font-family: "Inter", system-ui, -apple-system, sans-serif; background-color: #0b0b16; color: white; }
+      
+      /* Custom Range Slider */
+      input[type=range] {
+        -webkit-appearance: none;
+        width: 100%;
+        height: 2px;
+        background: #3f3f46;
+        border-radius: 4px;
+        outline: none;
+      }
+      input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        height: 16px;
+        width: 16px;
+        border-radius: 50%;
+        background: #06b6d4;
+        cursor: pointer;
+        box-shadow: 0 0 0 2px #1e1e30;
+        transition: all 0.2s ease;
+      }
+      input[type=range]::-webkit-slider-thumb:hover {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.2);
+      }
+      
+      /* Animations */
+      .animate-fade-in { animation: fadeIn 0.6s ease-out forwards; }
+      .animate-slide-up { animation: slideUp 0.8s ease-out forwards; }
+      .animate-scale-in { animation: scaleIn 0.5s ease-out forwards; }
+      
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes slideUp {
+        from { opacity: 0; transform: translateY(40px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes scaleIn {
+        from { opacity: 0; transform: scale(0.9); }
+        to { opacity: 1; transform: scale(1); }
+      }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://esm.sh/@google/genai@^1.14.0",
+        "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+        "react/": "https://esm.sh/react@^19.1.1/",
+        "react": "https://esm.sh/react@^19.1.1",
+        "tailwind-merge": "https://esm.sh/tailwind-merge@^3.3.1",
+        "framer-motion": "https://esm.sh/framer-motion@^12.23.12",
+        "clsx": "https://esm.sh/clsx@^2.1.1"
+      }
+    }
+    </script>
+  </head>
+  <body class="overflow-x-hidden text-white bg-[#0b0b16] relative">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+    <!-- Unicorn Studio Script -->
+    <script type="text/javascript">
+      !function(){if(!window.UnicornStudio){window.UnicornStudio={isInitialized:!1};var i=document.createElement("script");i.src="https://cdn.jsdelivr.net/gh/hiunicornstudio/unicornstudio.js@v1.4.34/dist/unicornStudio.umd.js",i.onload=function(){window.UnicornStudio.isInitialized||(UnicornStudio.init(),window.UnicornStudio.isInitialized=!0)},(document.head || document.body).appendChild(i)}}();
+    </script>
+  </body>
+</html>
