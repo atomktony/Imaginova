@@ -12,7 +12,9 @@ const Footer = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-12">
                     {/* Brand Column */}
                     <div className="space-y-4">
-                        <a href="#" className="inline-flex items-center justify-center bg-center w-[120px] h-[36px] bg-[url(https://hoirqrkdgbmvpwutwuwj-all.supabase.co/storage/v1/object/public/assets/assets/56b2752b-f067-4093-be83-e35cac41ab92_320w.webp)] bg-cover rounded-full"></a>
+                        <a href="#" className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                            IMAGINOVA
+                        </a>
                         <p className="text-white/60 text-sm font-poppins font-light tracking-normal leading-relaxed">
                             Professional AI Studio & Magic Editor. Transform your photos with cinematic lighting, advanced compositing, and studio-grade generation using Gemini 2.5.
                         </p>

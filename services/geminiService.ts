@@ -5,32 +5,25 @@
 */
 import { GoogleGenAI, Modality, HarmCategory, HarmBlockThreshold } from "@google/genai";
 
+
 export const CLASSIC_THEMES = [
     "Professional Headshot: Seamless light grey paper background, wearing sharp formal business attire, soft even lighting",
-    "Dramatic Portrait: Dark brown textured canvas background, wearing a black turtleneck, moody Rembrandt lighting",
     "High Fashion Editorial: Pure white infinity cyclorama background, wearing a stylish colorful blazer, high-key lighting",
-    "Casual Lifestyle: Beige textured plaster wall background, wearing a denim jacket and white t-shirt, relaxed pose sitting on a stool",
-    "Cinematic Close-up: 85mm lens, dark blurred studio background, detailed facial features, shallow depth of field (bokeh)",
-    "Film Noir: Shadowy blinds pattern on background, wearing a classic trench coat, dramatic black and white high contrast"
+    "Cinematic Close-up: 85mm lens, dark blurred studio background, detailed facial features, shallow depth of field (bokeh)"
 ];
 
 export const STARTUP_THEMES = [
     "Modern Open Office: Leaning against a glass wall in a high-tech workspace, smart casual blazer, bright daylight",
-    "Co-working Lounge: Relaxed confident pose on a modern sofa, laptop visible in background, blurred office depth of field",
     "Keynote Stage: Spotlight on subject, dark blurred audience background, wearing a modern suit, gesture of public speaking",
-    "Urban Rooftop: City skyline background at golden hour, arms folded confidently, wearing a tech hoodie and jacket",
-    "Minimalist Meeting Room: Whiteboard background with diagrams, standing pose, gesture of explaining idea, crisp lighting",
-    "Coffee Shop Strategy: Window seat with city reflection, natural soft light, looking out thoughtfully, holding a notebook"
+    "Urban Rooftop: City skyline background at golden hour, arms folded confidently, wearing a tech hoodie and jacket"
 ];
 
 export const TROPICAL_THEMES = [
     "White Sand Beach: Walking towards camera, turquoise water background, wearing light linen outfit, bright sunny lighting",
-    "Jungle Waterfall: Dappled sunlight through palm leaves, adventurous standing pose, lush green background",
     "Luxury Resort Pool: Infinity pool edge at sunset, elegant summer evening wear, warm golden lighting, relaxed pose",
-    "Bamboo Forest: Path through tall bamboo, soft diffused zen lighting, yoga or meditation inspired standing pose",
-    "Wooden Dock: Wide angle shot on a pier over water, breezy atmosphere, blue sky background, casual summer clothes",
-    "Tiki Torch Night: Evening beach setting with firelight glow, dramatic warm shadows, festive tropical attire"
+    "Bamboo Forest: Path through tall bamboo, soft diffused zen lighting, yoga or meditation inspired standing pose"
 ];
+
 
 export const CREATIVE_THEMES = [
     "Double Exposure with Nature",
@@ -67,8 +60,8 @@ const cleanBase64 = (data: string) => data.replace(/^data:image\/(png|jpeg|webp)
  * Core function to generate a single image based on inputs and prompt
  */
 async function generateSingleImage(
-    mainImageBase64: string, 
-    prompt: string, 
+    mainImageBase64: string,
+    prompt: string,
     secondImageBase64?: string,
     secondImageInstruction: string = "Use the second image as a reference object/style.",
     aspectRatio?: string,
@@ -98,8 +91,8 @@ async function generateSingleImage(
         // Inject Flux Aesthetic Prompt Modifiers
         effectivePrompt = `${prompt}. Style: Hyper-realistic, 8k resolution, sharp focus, highly detailed skin texture, natural lighting, depth of field, film grain, cinematic composition, masterpiece, trending on ArtStation.`;
     } else {
-         effectivePrompt = isRetry 
-            ? `Edit this image. ${prompt}` 
+        effectivePrompt = isRetry
+            ? `Edit this image. ${prompt}`
             : `${prompt}. High quality, professional photography, 8k resolution.`;
     }
 
@@ -129,16 +122,16 @@ async function generateSingleImage(
         const candidates = response.candidates;
         if (candidates && candidates[0]) {
             const candidate = candidates[0];
-            
+
             // Check for safety blocking
             if (candidate.finishReason === 'SAFETY') {
                 // If strict prompt failed, throw specific error to trigger retry
-                 throw new Error('SAFETY_BLOCK');
+                throw new Error('SAFETY_BLOCK');
             }
-            
+
             // Check for other stop reasons like IMAGE_OTHER
-             if (candidate.finishReason && candidate.finishReason !== 'STOP') {
-                 throw new Error(`FINISH_REASON_${candidate.finishReason}`);
+            if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+                throw new Error(`FINISH_REASON_${candidate.finishReason}`);
             }
 
             if (candidate.content?.parts) {
@@ -149,11 +142,11 @@ async function generateSingleImage(
                 }
             }
         }
-        
+
         if (response.text) {
             throw new Error(`Model Response: ${response.text.slice(0, 200)}...`);
         }
-        
+
         throw new Error("No image generated.");
     } catch (error: any) {
         // Retry Logic for Safety or Unclear Reasons
@@ -161,7 +154,7 @@ async function generateSingleImage(
             console.warn(`Generation failed with ${error.message}. Retrying with simplified prompt...`);
             return generateSingleImage(mainImageBase64, prompt.split('.')[0], secondImageBase64, secondImageInstruction, aspectRatio, true, effectiveModel);
         }
-        
+
         // Note: 429 Errors are bubbled up to be handled by the loop-level retry mechanism
         throw error;
     }
@@ -171,7 +164,7 @@ async function generateSingleImage(
  * Generates a portfolio of 6 images sequentially (Classic/Creative Themes)
  */
 export async function generateStudioPortfolio(
-    base64Image: string, 
+    base64Image: string,
     themes: string[],
     modelName: string = 'gemini-2.5-flash-image'
 ): Promise<{ theme: string; url: string }[]> {
@@ -179,9 +172,9 @@ export async function generateStudioPortfolio(
 
     for (let i = 0; i < themes.length; i++) {
         const theme = themes[i];
-        
+
         // Increased Base Delay to 20s to avoid hitting QPM limits
-        if (i > 0) await delay(20000); 
+        if (i > 0) await delay(20000);
 
         const specificPrompt = `
             Task: Edit the input image to change the background and lighting.
@@ -211,10 +204,10 @@ export async function generateStudioPortfolio(
                     if (attempts < maxAttempts) {
                         // Exponential backoff: 30s, 60s, 90s, 120s
                         const backoffTime = 30000 * attempts;
-                        console.warn(`API Limit for '${theme}'. Pausing ${backoffTime/1000}s before retry ${attempts}/${maxAttempts}...`);
+                        console.warn(`API Limit for '${theme}'. Pausing ${backoffTime / 1000}s before retry ${attempts}/${maxAttempts}...`);
                         await delay(backoffTime);
                     } else {
-                         console.error(`Failed '${theme}' after ${maxAttempts} attempts.`);
+                        console.error(`Failed '${theme}' after ${maxAttempts} attempts.`);
                     }
                 } else {
                     // Other errors (like persistent SAFETY) -> Skip to next theme
@@ -234,14 +227,14 @@ export async function generateStudioPortfolio(
  * Acts as Creative Director to ensure variety and product focus.
  */
 export async function generateMagicPortfolio(
-    mainImageBase64: string, 
-    userPrompt: string, 
+    mainImageBase64: string,
+    userPrompt: string,
     adjustments: string,
     aspectRatio: string,
     objectImageBase64?: string
 ): Promise<{ theme: string; url: string }[]> {
     const results: { theme: string; url: string }[] = [];
-    
+
     // Clone the lenses so we can modify one for the product shot
     const currentLenses = [...EDITOR_LENSES];
 
@@ -252,9 +245,9 @@ export async function generateMagicPortfolio(
 
     for (let i = 0; i < currentLenses.length; i++) {
         const lens = currentLenses[i];
-        
+
         // Increased Base Delay to 20s
-        if (i > 0) await delay(20000); 
+        if (i > 0) await delay(20000);
 
         let secondImagePrompt = "Use the second image as a reference object integrated naturally into the scene.";
         const isProductShot = objectImageBase64 && i === 4;
@@ -284,9 +277,9 @@ export async function generateMagicPortfolio(
         while (attempts < maxAttempts && !success) {
             try {
                 const url = await generateSingleImage(
-                    mainImageBase64, 
-                    combinedPrompt, 
-                    objectImageBase64, 
+                    mainImageBase64,
+                    combinedPrompt,
+                    objectImageBase64,
                     secondImagePrompt,
                     aspectRatio
                 );
@@ -298,7 +291,7 @@ export async function generateMagicPortfolio(
                     if (attempts < maxAttempts) {
                         // Exponential backoff
                         const backoffTime = 30000 * attempts;
-                        console.warn(`API Limit for '${lens}'. Pausing ${backoffTime/1000}s before retry ${attempts}/${maxAttempts}...`);
+                        console.warn(`API Limit for '${lens}'. Pausing ${backoffTime / 1000}s before retry ${attempts}/${maxAttempts}...`);
                         await delay(backoffTime);
                     }
                 } else {
@@ -350,10 +343,10 @@ export async function generateFoundersPortfolio(
         while (attempts < maxAttempts && !success) {
             try {
                 const url = await generateSingleImage(
-                    founderABase64, 
-                    prompt, 
-                    founderBBase64, 
-                    "Use this image as Subject B.", 
+                    founderABase64,
+                    prompt,
+                    founderBBase64,
+                    "Use this image as Subject B.",
                     "16:9" // Cinematic aspect ratio for duo shots
                 );
                 results.push({ theme, url });
@@ -364,7 +357,7 @@ export async function generateFoundersPortfolio(
                     if (attempts < maxAttempts) {
                         // Exponential backoff
                         const backoffTime = 30000 * attempts;
-                        console.warn(`API Limit for '${theme}'. Pausing ${backoffTime/1000}s before retry ${attempts}/${maxAttempts}...`);
+                        console.warn(`API Limit for '${theme}'. Pausing ${backoffTime / 1000}s before retry ${attempts}/${maxAttempts}...`);
                         await delay(backoffTime);
                     }
                 } else {

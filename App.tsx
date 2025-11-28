@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-    generateStudioPortfolio, 
+import {
+    generateStudioPortfolio,
     generateMagicPortfolio,
     generateFoundersPortfolio,
     CLASSIC_THEMES,
@@ -29,9 +29,9 @@ const MODELS = [
 ];
 
 const PHOTOSHOOT_STYLES = [
-    { id: 'classic', label: 'Classic Studio', description: '6 distinct, high-end studio environments with varied lighting, outfits, and poses.' },
-    { id: 'startup', label: 'Startup & Entrepreneur', description: '6 distinct, high-end startup & entrepreneur environments with varied lighting, business outfits, and poses.' },
-    { id: 'tropical', label: 'Tropical Getaway', description: '6 distinct, high-end full body in tropical island environments with natural lighting, outfits, and angles.' }
+    { id: 'classic', label: 'Classic Studio', description: '3 distinct, high-end studio environments with varied lighting, outfits, and poses.' },
+    { id: 'startup', label: 'Startup & Entrepreneur', description: '3 distinct, high-end startup & entrepreneur environments with varied lighting, business outfits, and poses.' },
+    { id: 'tropical', label: 'Tropical Getaway', description: '3 distinct, high-end full body in tropical island environments with natural lighting, outfits, and angles.' }
 ];
 
 declare global {
@@ -47,18 +47,18 @@ declare global {
 function App() {
     // App State
     const [mode, setMode] = useState<Mode>('portfolio');
-    
+
     // Generation State
     const [isGenerating, setIsGenerating] = useState(false);
     const [error, setError] = useState("");
     const [prompt, setPrompt] = useState("");
-    
+
     // Upload State (Portfolio & Editor)
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
     const [portfolioModel, setPortfolioModel] = useState(MODELS[0].id);
     const [photoshootStyle, setPhotoshootStyle] = useState(PHOTOSHOOT_STYLES[0].id);
-    
+
     // Founders Mode State
     const [founderAFile, setFounderAFile] = useState<File | null>(null);
     const [founderAPreview, setFounderAPreview] = useState<string | null>(null);
@@ -69,15 +69,15 @@ function App() {
     const [objectFile, setObjectFile] = useState<File | null>(null);
     const [objectPreviewUrl, setObjectPreviewUrl] = useState<string | null>(null);
     const [aspectRatio, setAspectRatio] = useState("1:1");
-    
+
     // Editor Adjustments
     const [brightness, setBrightness] = useState(50);
     const [contrast, setContrast] = useState(50);
     const [warmth, setWarmth] = useState(50);
     const [activeTool, setActiveTool] = useState<'brush' | 'eraser' | 'layers' | null>(null);
-    
+
     // Results State
-    const [generatedResults, setGeneratedResults] = useState<{theme: string, url: string}[]>([]);
+    const [generatedResults, setGeneratedResults] = useState<{ theme: string, url: string }[]>([]);
 
     const fileInputRef = useRef<HTMLInputElement>(null);
     const objectInputRef = useRef<HTMLInputElement>(null);
@@ -89,7 +89,7 @@ function App() {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const url = URL.createObjectURL(file);
-            
+
             if (type === 'object') {
                 setObjectFile(file);
                 setObjectPreviewUrl(url);
@@ -130,7 +130,7 @@ function App() {
     const handleGenerate = async () => {
         setIsGenerating(true);
         setError("");
-        setGeneratedResults([]); 
+        setGeneratedResults([]);
 
         try {
             // Ensure API Key is selected (Required for high-quality models)
@@ -144,22 +144,22 @@ function App() {
             if (mode === 'portfolio') {
                 if (!selectedFile) { setError("Please upload a main image."); return; }
                 const mainBase64 = await convertToBase64(selectedFile);
-                
+
                 let selectedThemes = CLASSIC_THEMES;
                 if (photoshootStyle === 'startup') selectedThemes = STARTUP_THEMES;
                 if (photoshootStyle === 'tropical') selectedThemes = TROPICAL_THEMES;
 
                 const results = await generateStudioPortfolio(mainBase64, selectedThemes, portfolioModel);
                 setGeneratedResults(results);
-            } 
+            }
             else if (mode === 'editor') {
                 if (!selectedFile) { setError("Please upload a main image."); return; }
                 if (!prompt) { setError("Please describe your edit."); return; }
-                
+
                 const mainBase64 = await convertToBase64(selectedFile);
                 let objectBase64;
                 if (objectFile) objectBase64 = await convertToBase64(objectFile);
-                
+
                 const adjustments = getAdjustmentString();
                 const results = await generateMagicPortfolio(mainBase64, prompt, adjustments, aspectRatio, objectBase64);
                 setGeneratedResults(results);
@@ -168,12 +168,17 @@ function App() {
                 if (!founderAFile || !founderBFile) { setError("Please upload photos for both founders."); return; }
                 const aBase64 = await convertToBase64(founderAFile);
                 const bBase64 = await convertToBase64(founderBFile);
-                
+
                 const results = await generateFoundersPortfolio(aBase64, bBase64);
                 setGeneratedResults(results);
             }
         } catch (e: any) {
-            setError(e.message || "Generation failed. Please try again.");
+            // Check if it's a rate limit error
+            if (e.message?.includes('429') || e.message?.includes('quota') || e.message?.includes('RESOURCE_EXHAUSTED')) {
+                setError("⚠️ API quota exceeded. Your free tier limit has been reached. Please wait 24 hours or upgrade your API key at aistudio.google.com");
+            } else {
+                setError(e.message || "Generation failed. Please try again.");
+            }
             console.error(e);
         } finally {
             setIsGenerating(false);
@@ -203,13 +208,12 @@ function App() {
 
     // UI Components
     const ModeTab = ({ id, label, icon }: { id: Mode, label: string, icon: React.ReactNode }) => (
-        <button 
+        <button
             onClick={() => { setMode(id); setError(""); setGeneratedResults([]); }}
-            className={`flex items-center space-x-2 px-6 py-3 rounded-full transition-all duration-300 font-medium text-sm ${
-                mode === id 
-                ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]' 
+            className={`flex items-center space-x-2 px-6 py-3 rounded-full transition-all duration-300 font-medium text-sm ${mode === id
+                ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]'
                 : 'text-white/60 hover:text-white hover:bg-white/10'
-            }`}
+                }`}
         >
             {icon}
             <span>{label}</span>
@@ -217,37 +221,35 @@ function App() {
     );
 
     const ToolButton = ({ tool, icon }: { tool: 'brush' | 'eraser' | 'layers', icon: React.ReactNode }) => (
-        <button 
+        <button
             onClick={() => setActiveTool(tool === activeTool ? null : tool)}
-            className={`p-3 rounded-lg transition-all ${
-                activeTool === tool ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50' : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
-            }`}
+            className={`p-3 rounded-lg transition-all ${activeTool === tool ? 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/50' : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'
+                }`}
         >
             {icon}
         </button>
     );
 
-    const FileUploader = ({ 
-        preview, 
-        onSelect, 
-        inputRef, 
-        label, 
-        mini = false 
-    }: { 
-        preview: string | null, 
-        onSelect: (e: React.ChangeEvent<HTMLInputElement>) => void, 
-        inputRef: React.RefObject<HTMLInputElement | null>, 
+    const FileUploader = ({
+        preview,
+        onSelect,
+        inputRef,
+        label,
+        mini = false
+    }: {
+        preview: string | null,
+        onSelect: (e: React.ChangeEvent<HTMLInputElement>) => void,
+        inputRef: React.RefObject<HTMLInputElement | null>,
         label: string,
         mini?: boolean
     }) => (
-        <div 
+        <div
             onClick={() => inputRef.current?.click()}
-            className={`relative overflow-hidden border-dashed border-2 border-white/20 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 group hover:border-cyan-400 hover:bg-white/5 ${
-                mini ? 'h-32 w-32 min-w-[8rem]' : 'h-64 w-full'
-            } ${preview ? 'border-solid border-white/50' : ''}`}
+            className={`relative overflow-hidden border-dashed border-2 border-white/20 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 group hover:border-cyan-400 hover:bg-white/5 ${mini ? 'h-32 w-32 min-w-[8rem]' : 'h-64 w-full'
+                } ${preview ? 'border-solid border-white/50' : ''}`}
         >
             <input type="file" ref={inputRef} onChange={onSelect} accept="image/*" className="hidden" />
-            
+
             {preview ? (
                 <>
                     <img src={preview} alt="Preview" className="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-40 transition-opacity" />
@@ -257,7 +259,7 @@ function App() {
                 </>
             ) : (
                 <div className="p-4 flex flex-col items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" width={mini ? 24 : 32} height={mini ? 24 : 32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/40 mb-3 group-hover:text-cyan-400 transition-colors"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width={mini ? 24 : 32} height={mini ? 24 : 32} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-white/40 mb-3 group-hover:text-cyan-400 transition-colors"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></svg>
                     <span className="text-white/60 text-sm font-light">{label}</span>
                 </div>
             )}
@@ -276,7 +278,9 @@ function App() {
             {/* Navigation */}
             <header className="animate-fade-in opacity-0 w-full z-50 relative">
                 <nav className="max-w-7xl mx-auto flex items-center justify-between px-6 py-6">
-                    <a href="#" className="inline-flex items-center justify-center bg-center w-[120px] h-[36px] bg-[url(https://hoirqrkdgbmvpwutwuwj-all.supabase.co/storage/v1/object/public/assets/assets/56b2752b-f067-4093-be83-e35cac41ab92_320w.webp)] bg-cover rounded-full"></a>
+                    <a href="#" className="text-2xl font-bold bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
+                        IMAGINOVA
+                    </a>
                     <div className="hidden md:flex items-center space-x-10 text-sm font-medium">
                         <a href="#" className="text-cyan-400 relative after:absolute after:bottom-0 after:left-0 after:w-full after:h-0.5 after:bg-cyan-400 font-poppins font-light">Studio</a>
                         <a href="#" className="text-white/60 hover:text-white font-poppins font-light">Pro</a>
@@ -287,11 +291,11 @@ function App() {
             {/* Studio Main Area */}
             <section className="relative z-10 pt-10 pb-20">
                 <div className="max-w-6xl mx-auto px-6">
-                    
+
                     {/* Mode Switcher */}
                     <div className="flex justify-center mb-12 animate-fade-in opacity-0" style={{ animationDelay: '0.1s' }}>
                         <div className="bg-white/5 border border-white/10 p-1 rounded-full flex space-x-1 backdrop-blur-md">
-                            <ModeTab id="portfolio" label="Portfolio" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>} />
+                            <ModeTab id="portfolio" label="Portfolio" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M3 9h18" /><path d="M9 21V9" /></svg>} />
                             <ModeTab id="founders" label="Founders Shoot" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>} />
                             <ModeTab id="editor" label="Magic Editor" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"></path><polygon points="18 2 22 6 12 16 8 16 8 12 18 2"></polygon></svg>} />
                         </div>
@@ -299,16 +303,16 @@ function App() {
 
                     {/* Mode Content */}
                     <div className="animate-scale-in opacity-0" style={{ animationDelay: '0.2s' }}>
-                        
+
                         {/* PORTFOLIO MODE */}
                         {mode === 'portfolio' && (
                             <div className="max-w-3xl mx-auto">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-                                    <FileUploader 
-                                        preview={previewUrl} 
-                                        onSelect={(e) => handleFileSelect(e)} 
-                                        inputRef={fileInputRef} 
-                                        label="Upload Subject Photo" 
+                                    <FileUploader
+                                        preview={previewUrl}
+                                        onSelect={(e) => handleFileSelect(e)}
+                                        inputRef={fileInputRef}
+                                        label="Upload Subject Photo"
                                     />
                                     <div className="space-y-6">
                                         <div>
@@ -316,10 +320,10 @@ function App() {
                                             <p className="text-white/60 text-sm mb-6">
                                                 {PHOTOSHOOT_STYLES.find(s => s.id === photoshootStyle)?.description}
                                             </p>
-                                            
+
                                             <div className="mb-4">
                                                 <label className="text-xs font-medium text-white/40 block mb-2">Photoshoot Style</label>
-                                                <select 
+                                                <select
                                                     value={photoshootStyle}
                                                     onChange={(e) => setPhotoshootStyle(e.target.value)}
                                                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-500 text-white/80"
@@ -332,7 +336,7 @@ function App() {
 
                                             <div className="mb-6">
                                                 <label className="text-xs font-medium text-white/40 block mb-2">Generative Model</label>
-                                                <select 
+                                                <select
                                                     value={portfolioModel}
                                                     onChange={(e) => setPortfolioModel(e.target.value)}
                                                     className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-500 text-white/80"
@@ -348,9 +352,8 @@ function App() {
                                                 <ul className="space-y-2 text-xs text-white/70">
                                                     {photoshootStyle === 'classic' && (
                                                         <>
-                                                            <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Headshot (Grey Paper)</li>
-                                                            <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>High Fashion Editorial (White)</li>
-                                                            <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Casual Lifestyle (Relaxed Pose)</li>
+                                                            <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Professional Headshot</li>
+                                                            <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>High Fashion Editorial</li>
                                                             <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Cinematic 85mm Close-up</li>
                                                         </>
                                                     )}
@@ -359,14 +362,12 @@ function App() {
                                                             <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Modern Open Office</li>
                                                             <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Keynote Stage Presentation</li>
                                                             <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Urban Rooftop Golden Hour</li>
-                                                            <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Minimalist Meeting Room</li>
                                                         </>
                                                     )}
                                                     {photoshootStyle === 'tropical' && (
                                                         <>
                                                             <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>White Sand Beach Walk</li>
                                                             <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Luxury Resort Infinity Pool</li>
-                                                            <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Jungle Waterfall Adventure</li>
                                                             <li className="flex items-center"><span className="w-1.5 h-1.5 bg-white/40 rounded-full mr-2"></span>Bamboo Forest Zen</li>
                                                         </>
                                                     )}
@@ -388,20 +389,20 @@ function App() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-3">
                                         <h4 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider text-center">Founder A</h4>
-                                        <FileUploader 
-                                            preview={founderAPreview} 
-                                            onSelect={(e) => handleFileSelect(e, 'founderA')} 
-                                            inputRef={founderAInputRef} 
-                                            label="Upload Founder A" 
+                                        <FileUploader
+                                            preview={founderAPreview}
+                                            onSelect={(e) => handleFileSelect(e, 'founderA')}
+                                            inputRef={founderAInputRef}
+                                            label="Upload Founder A"
                                         />
                                     </div>
                                     <div className="space-y-3">
                                         <h4 className="text-xs font-semibold text-cyan-400 uppercase tracking-wider text-center">Founder B</h4>
-                                        <FileUploader 
-                                            preview={founderBPreview} 
-                                            onSelect={(e) => handleFileSelect(e, 'founderB')} 
-                                            inputRef={founderBInputRef} 
-                                            label="Upload Founder B" 
+                                        <FileUploader
+                                            preview={founderBPreview}
+                                            onSelect={(e) => handleFileSelect(e, 'founderB')}
+                                            inputRef={founderBInputRef}
+                                            label="Upload Founder B"
                                         />
                                     </div>
                                 </div>
@@ -416,9 +417,9 @@ function App() {
                                     <div className="flex justify-between items-center mb-4">
                                         <span className="text-xs font-medium uppercase tracking-wider text-white/40">Canvas</span>
                                         <div className="flex space-x-2">
-                                            <ToolButton tool="brush" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13.28A4.41 4.41 0 0 0 20.5 11c.58-.82.26-2.16-.68-2.56a16.5 16.5 0 0 0-5.64-.65 16.67 16.67 0 0 0-6 1.4 4.39 4.39 0 0 0-2.18 3.62c.27 2.87 3.2 4.19 6 4.19 4.6 0 6.56-2.32 6-3.72z"/></svg>} />
-                                            <ToolButton tool="eraser" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z"/><path d="M17 17L7 7"/></svg>} />
-                                            <ToolButton tool="layers" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>} />
+                                            <ToolButton tool="brush" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 13.28A4.41 4.41 0 0 0 20.5 11c.58-.82.26-2.16-.68-2.56a16.5 16.5 0 0 0-5.64-.65 16.67 16.67 0 0 0-6 1.4 4.39 4.39 0 0 0-2.18 3.62c.27 2.87 3.2 4.19 6 4.19 4.6 0 6.56-2.32 6-3.72z" /></svg>} />
+                                            <ToolButton tool="eraser" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 20H7L3 16C2 15 2 13 3 12L13 2L22 11L20 20Z" /><path d="M17 17L7 7" /></svg>} />
+                                            <ToolButton tool="layers" icon={<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></svg>} />
                                         </div>
                                     </div>
                                     <div className="aspect-[4/3] relative rounded-xl overflow-hidden bg-white/5 border border-white/10 flex items-center justify-center group">
@@ -430,7 +431,7 @@ function App() {
                                             </div>
                                         )}
                                         <input type="file" ref={fileInputRef} onChange={(e) => handleFileSelect(e)} accept="image/*" className="hidden" />
-                                        
+
                                         {/* Overlay Object if present */}
                                         {objectPreviewUrl && (
                                             <div className="absolute bottom-4 right-4 w-24 h-24 border-2 border-cyan-500/50 rounded-lg overflow-hidden bg-black/50">
@@ -444,7 +445,7 @@ function App() {
                                                 <div className="relative mb-4">
                                                     <div className="w-16 h-16 border-4 border-white/10 border-t-cyan-400 rounded-full animate-spin"></div>
                                                     <div className="absolute inset-0 flex items-center justify-center">
-                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>
+                                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-cyan-400"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>
                                                     </div>
                                                 </div>
                                                 <p className="text-cyan-400 font-medium font-mono text-sm animate-pulse tracking-wider">PROCESSING SCENE...</p>
@@ -459,17 +460,17 @@ function App() {
                                     {/* Inputs */}
                                     <div className="space-y-4">
                                         <h4 className="text-sm font-medium text-white/80">Inputs</h4>
-                                        <div 
+                                        <div
                                             className="flex items-center space-x-3 p-3 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
                                             onClick={() => objectInputRef.current?.click()}
                                         >
                                             <div className="w-8 h-8 rounded bg-white/10 flex items-center justify-center">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></svg>
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></svg>
                                             </div>
-                                            <span className="text-xs text-white/60">{objectFile ? objectFile.name.slice(0,15) : "Add Reference Object"}</span>
+                                            <span className="text-xs text-white/60">{objectFile ? objectFile.name.slice(0, 15) : "Add Reference Object"}</span>
                                             <input type="file" ref={objectInputRef} onChange={(e) => handleFileSelect(e, 'object')} accept="image/*" className="hidden" />
                                         </div>
-                                        
+
                                         <div className="space-y-1">
                                             <label className="text-xs font-medium text-white/40">Prompt</label>
                                             <textarea
@@ -482,7 +483,7 @@ function App() {
 
                                         <div className="space-y-1">
                                             <label className="text-xs font-medium text-white/40">Aspect Ratio</label>
-                                            <select 
+                                            <select
                                                 value={aspectRatio}
                                                 onChange={(e) => setAspectRatio(e.target.value)}
                                                 className="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:border-cyan-500 text-white/80"
@@ -497,7 +498,7 @@ function App() {
                                     {/* Adjustments */}
                                     <div className="space-y-5">
                                         <h4 className="text-sm font-medium text-white/80">Adjustments</h4>
-                                        
+
                                         <div className="space-y-2">
                                             <div className="flex justify-between text-xs text-white/40">
                                                 <span>Brightness</span> <span>{brightness}%</span>
@@ -527,7 +528,7 @@ function App() {
 
                         {/* Generate Button */}
                         <div className="mt-10 flex justify-center flex-col items-center">
-                            <button 
+                            <button
                                 onClick={handleGenerate}
                                 disabled={isGenerating}
                                 className="group relative px-8 py-4 bg-white text-black rounded-full font-medium text-lg transition-all hover:scale-105 hover:shadow-[0_0_30px_rgba(255,255,255,0.3)] disabled:opacity-50 disabled:scale-100 disabled:cursor-not-allowed"
@@ -561,11 +562,11 @@ function App() {
                             <h2 className="text-3xl font-playfair">{mode === 'editor' ? 'Magic Edit Results' : mode === 'founders' ? 'Founders Session' : 'Studio Session'}</h2>
                             <p className="text-white/40 text-sm mt-1">{generatedResults.length} unique variations generated</p>
                         </div>
-                        <button 
+                        <button
                             onClick={handleDownloadPortfolio}
                             className="flex items-center space-x-2 text-sm font-medium text-cyan-400 hover:text-white transition-colors"
                         >
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" x2="12" y1="15" y2="3" /></svg>
                             <span>Download All</span>
                         </button>
                     </div>
